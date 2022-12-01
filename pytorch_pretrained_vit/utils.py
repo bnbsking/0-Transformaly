@@ -55,7 +55,7 @@ def load_pretrained_weights(
         state_dict.pop(key)
 
     # Change size of positional embeddings
-    if resize_positional_embedding: 
+    if resize_positional_embedding: # False
         posemb = state_dict['positional_embedding.pos_embedding']
         posemb_new = model.state_dict()['positional_embedding.pos_embedding']
         state_dict['positional_embedding.pos_embedding'] = \
