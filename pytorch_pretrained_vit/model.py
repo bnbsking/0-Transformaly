@@ -203,8 +203,8 @@ class AnomalyViT(nn.Module):
 
     def __init__(
             self,
-            name: Optional[str] = None,
-            pretrained: bool = False,
+            name: Optional[str] = None, # "B_16_imagenet1k"
+            pretrained: bool = False, # True
             patches: int = 16,
             dim: int = 768,
             ff_dim: int = 3072,
@@ -280,30 +280,30 @@ class AnomalyViT(nn.Module):
             raise NotImplementedError()
 
         # Transformer
-        self.clone_block_ind = clone_block_ind
+        self.clone_block_ind = clone_block_ind # -1
         self.transformer = AnomalyTransformer(num_layers=num_layers, dim=dim, num_heads=num_heads,
-                                              ff_dim=ff_dim, dropout=dropout_rate)
+                                              ff_dim=ff_dim, dropout=dropout_rate) # 12, 768, 12, 3072, 0.1
 
         # self.transformer = AnomalyTransformer(num_layers=num_layers, dim=dim, num_heads=num_heads,
         #                                       ff_dim=ff_dim, dropout=dropout_rate,
         #                                       clone_block_ind = self.clone_block_ind)
 
         # Representation layer
-        if representation_size and load_repr_layer:
+        if representation_size and load_repr_layer: # False
             self.pre_logits = nn.Linear(dim, representation_size)
             pre_logits_size = representation_size
         else:
-            pre_logits_size = dim
+            pre_logits_size = dim # 768
 
         # Classifier head
-        self.norm = nn.LayerNorm(pre_logits_size, eps=1e-6)
-        self.fc = nn.Linear(pre_logits_size, num_classes)
+        self.norm = nn.LayerNorm(pre_logits_size, eps=1e-6) # 768
+        self.fc = nn.Linear(pre_logits_size, num_classes) # 768,c
 
         # Initialize weights
         self.init_weights()
 
         # Load pretrained model
-        if pretrained:
+        if pretrained: # True
             pretrained_num_channels = 3
             pretrained_num_classes = PRETRAINED_MODELS[name]['num_classes']
             pretrained_image_size = PRETRAINED_MODELS[name]['image_size']
@@ -314,7 +314,7 @@ class AnomalyViT(nn.Module):
                 load_repr_layer=load_repr_layer,
                 resize_positional_embedding=(image_size != pretrained_image_size),
                 strict=False
-            )
+            ) # anomalyViT, "B_16_imagenet1k", True, False, False, True, False
 
     @torch.no_grad()
     def init_weights(self):
