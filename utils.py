@@ -540,7 +540,7 @@ def get_finetuned_features(model,
     return np.array(all_outputs_recon_scores)
 
 
-def get_transforms(dataset, use_imagenet):
+def get_transforms(dataset, use_imagenet): # "cifar10", True
     # 0.5 normalization
     if dataset == 'fmnist':
         val_transforms_list = [
@@ -593,15 +593,15 @@ def get_datasets_for_ViT(dataset, data_path, one_vs_rest, _class,
         anomaly_classes = [_class]
 
     val_transforms = get_transforms(dataset=dataset,
-                                    use_imagenet=use_imagenet)
+                                    use_imagenet=use_imagenet) # torchvision.transforms.Compose([resize,toTensor,normalize])
 
     # get dataset
-    trainset_origin, testset = get_datasets(dataset, data_path, val_transforms)
+    trainset_origin, testset = get_datasets(dataset, data_path, val_transforms) # torchvision.datasets # (PIL: img 32*32,int: label)
 
-    train_indices = [i for i, val in enumerate(trainset_origin.targets)
+    train_indices = [i for i, val in enumerate(trainset_origin.targets) # get normal idx only
                      if val not in anomaly_classes]
     logging.info(f"len of train dataset {len(train_indices)}")
-    trainset = torch.utils.data.Subset(trainset_origin, train_indices)
+    trainset = torch.utils.data.Subset(trainset_origin, train_indices) # get normal trainset only
 
     if normal_test_sample_only:
         test_indices = [i for i, val in enumerate(testset.targets)
