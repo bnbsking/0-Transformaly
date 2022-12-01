@@ -248,34 +248,34 @@ class AnomalyViT(nn.Module):
             representation_size = config['representation_size']
             classifier = config['classifier']
             if image_size is None:
-                image_size = PRETRAINED_MODELS[name]['image_size']
+                image_size = PRETRAINED_MODELS[name]['image_size'] # (384,384)
             if num_classes is None:
-                num_classes = PRETRAINED_MODELS[name]['num_classes']
+                num_classes = PRETRAINED_MODELS[name]['num_classes'] # 1000
         self.image_size = image_size
 
         # Image and patch sizes
-        h, w = as_tuple(image_size)  # image sizes
-        fh, fw = as_tuple(patches)  # patch sizes
-        gh, gw = h // fh, w // fw  # number of patches
-        seq_len = gh * gw
+        h, w = as_tuple(image_size)  # image sizes # 384,384
+        fh, fw = as_tuple(patches)  # patch sizes # 16,16
+        gh, gw = h // fh, w // fw  # number of patches # 24,24
+        seq_len = gh * gw # 576
 
         # Patch embedding
-        self.patch_embedding = nn.Conv2d(in_channels, dim, kernel_size=(fh, fw), stride=(fh, fw))
+        self.patch_embedding = nn.Conv2d(in_channels, dim, kernel_size=(fh, fw), stride=(fh, fw)) # 3, 768, (16,16), (16,16)
 
         self.add_rotation_token = add_rotation_token
-        if self.add_rotation_token:
+        if self.add_rotation_token: # False
             self.rotation_token = nn.Parameter(torch.zeros(1, 1, dim))
             seq_len += 1
 
         # Class token
-        if classifier == 'token':
+        if classifier == 'token': # True
             self.class_token = nn.Parameter(torch.zeros(1, 1, dim))
-            if not self.add_rotation_token:
-                seq_len += 1
+            if not self.add_rotation_token: # True
+                seq_len += 1 # 577
 
         # Positional embedding
         if positional_embedding.lower() == '1d':
-            self.positional_embedding = PositionalEmbedding1D(seq_len, dim)
+            self.positional_embedding = PositionalEmbedding1D(seq_len, dim) # 577, 768
         else:
             raise NotImplementedError()
 
