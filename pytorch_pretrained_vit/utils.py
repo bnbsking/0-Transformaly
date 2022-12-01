@@ -18,7 +18,7 @@ def load_pretrained_weights(
     resize_positional_embedding=False,
     verbose=True,
     strict=True,
-):
+): # anomalyViT, "B_16_imagenet1k", None, True, True, False, False, True, False
     """Loads pretrained weights from weights path or download using url.
     Args:
         model (Module): Full model (a nn.Module)
