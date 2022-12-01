@@ -71,7 +71,8 @@ if __name__ == '__main__':
 
 
 
-    for _class in _classes:
+    #for _class in _classes: # alternate each class to be abnormal for multi-modal # so modify class 0 as abnormal
+    for _class in _classes[:1]:
         print_and_add_to_log("===================================", logging)
         print_and_add_to_log(f"Class is : {_class}", logging)
         print_and_add_to_log("===================================", logging)
@@ -81,8 +82,8 @@ if __name__ == '__main__':
             f'{"unimodal" if args["unimodal"] else "multimodal"}/{args["dataset"]}/class_{_class}')
         model_path = join(base_feature_path, 'model')
 
-        args['base_feature_path'] = base_feature_path
-        args['model_path'] = model_path
+        args['base_feature_path'] = base_feature_path # .../experiments/multimodal/cifar10/class_i
+        args['model_path'] = model_path               # .../experiments/multimodal/cifar10/class_i/model
 
         # create the relevant directories
         if not os.path.exists(model_path):
@@ -108,7 +109,7 @@ if __name__ == '__main__':
                                                  _class=args['_class'],
                                                  normal_test_sample_only=True,
                                                  use_imagenet=args['use_imagenet']
-                                                 )
+                                                 ) # "cifar10", "./_data/cifar10/val", False, 0, True, True
 
         _, ood_test_set = get_datasets_for_ViT(dataset=args['dataset'],
                                                data_path=args['data_path'],
