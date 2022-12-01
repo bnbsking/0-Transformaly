@@ -314,7 +314,7 @@ class AnomalyViT(nn.Module):
                 load_repr_layer=load_repr_layer,
                 resize_positional_embedding=(image_size != pretrained_image_size),
                 strict=False
-            ) # anomalyViT, "B_16_imagenet1k", True, False, False, True, False
+            ) # anomalyViT, "B_16_imagenet1k", True, True, False, False, False
 
     @torch.no_grad()
     def init_weights(self):
