@@ -585,11 +585,11 @@ def get_number_of_classes(dataset):
 
 def get_datasets_for_ViT(dataset, data_path, one_vs_rest, _class,
                          normal_test_sample_only=True,
-                         use_imagenet=False):
-    number_of_classes = get_number_of_classes(dataset)
-    if one_vs_rest:
+                         use_imagenet=False): # "cifar10", "./_data/cifar10/val", False, 0, True, True
+    number_of_classes = get_number_of_classes(dataset) # 10
+    if one_vs_rest: # unimodal
         anomaly_classes = [i for i in range(number_of_classes) if i != _class]
-    else:
+    else: # multimodal (default)
         anomaly_classes = [_class]
 
     val_transforms = get_transforms(dataset=dataset,
