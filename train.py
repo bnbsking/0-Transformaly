@@ -109,7 +109,7 @@ if __name__ == '__main__':
                                                  _class=args['_class'],
                                                  normal_test_sample_only=True,
                                                  use_imagenet=args['use_imagenet']
-                                                 ) # "cifar10", "./_data/cifar10/val", False, 0, True, True
+                                                 ) # "cifar10", "./_data/cifar10/val", False, 0, True, True # get normal only
 
         _, ood_test_set = get_datasets_for_ViT(dataset=args['dataset'],
                                                data_path=args['data_path'],
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                                                _class=args['_class'],
                                                normal_test_sample_only=True,
                                                use_imagenet=args['use_imagenet']
-                                               )
+                                               ) # get abnormal only
 
         print_and_add_to_log("---------------", logging)
         print_and_add_to_log(f'Class size: {args["_class"]}', logging)
