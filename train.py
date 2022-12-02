@@ -167,11 +167,11 @@ if __name__ == '__main__':
                                                 best_model=best_model,
                                                 args=args,
                                                 dataloaders=dataloaders,
-                                                output_path=model_path,
+                                                output_path=model_path, # .../experiments/multimodal/cifar10/class_i/model
                                                 device='cuda',
                                                 seed=42,
-                                                model_checkpoint_path=model_checkpoint_path,
-                                                anomaly_classes=anomaly_classes
+                                                model_checkpoint_path=model_checkpoint_path, # .../experiments/multimodal/cifar10/class_i/model/last_full_finetuned_model_state_dict.pkl
+                                                anomaly_classes=anomaly_classes # [0]
                                                 )
 
         training_losses = cur_acc_loss['training_losses']
