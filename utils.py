@@ -321,7 +321,8 @@ def forward_one_epoch(loader,
             loss.backward()
             optimizer.step()
 
-        if batch_idx % 20 == 0:
+        #if batch_idx % 20 == 0:
+        if batch_idx % 1000 == 0:
             progress_bar(batch_idx, len(loader), progress_bar_str
                          % (num_of_epochs, np.mean(losses), losses[-1]))
         del inputs, origin_block_outputs, cloned_block_outputs, loss
