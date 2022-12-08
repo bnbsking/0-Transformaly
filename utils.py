@@ -16,7 +16,7 @@ import numpy as np
 from tqdm import tqdm
 from PIL import Image
 from sklearn.metrics import roc_auc_score
-import faiss
+#import faiss
 import matplotlib.pyplot as plt
 import torch
 from torch import nn
@@ -102,17 +102,17 @@ def extract_fetures(base_path,
                     model,
                     logging,
                     calculate_features=False,
-                    manual_class_num_range=None,
-                    unimodal_vals=None,
+                    manual_class_num_range=None, # [0]
+                    unimodal_vals=None,          # [False]
                     output_train_features=True,
                     output_test_features=True,
-                    use_imagenet=False):
+                    use_imagenet=False):         # True
     if unimodal_vals is None:
         unimodal_vals = [True, False]
 
     BATCH_SIZE = 18
     exp_num = -1
-    for dataset in datasets:
+    for dataset in datasets: # ['cifar10']
         print_and_add_to_log("=======================================", logging)
         print_and_add_to_log(f"Dataset: {dataset}", logging)
         print_and_add_to_log(f"Path: {base_path}", logging)
@@ -120,17 +120,21 @@ def extract_fetures(base_path,
         exp_num += 1
 
         number_of_classes = get_number_of_classes(dataset)
-
-        if manual_class_num_range is not None:
+        if manual_class_num_range is not None: # True = [0] is not None
             _classes = range(*manual_class_num_range)
 
         else:
             _classes = range(number_of_classes)
-
-        for _class in _classes:
+        
+        #print( f"_class={_classes}" ) # range(0,0)
+        if True:
+            _classes = [0]
+        #for _class in _classes:
+        for _class in _classes[:1]:
 
             # config
-            for unimodal in unimodal_vals:
+            print( "OOO", unimodal_vals )
+            for unimodal in unimodal_vals: # once
 
                 print_and_add_to_log("=================================================",
                                      logging)
@@ -141,7 +145,7 @@ def extract_fetures(base_path,
 
                 assert dataset in ['cifar10', 'cifar100', 'fmnist', 'cats_vs_dogs',
                                    'dior'], f"{dataset} not supported yet!"
-                if unimodal:
+                if unimodal: # False
                     base_feature_path = join(base_path, f'unimodal/{dataset}/class_{str(_class)}')
                 else:
                     base_feature_path = join(base_path, f'multimodal/{dataset}/class_{str(_class)}')
@@ -245,7 +249,7 @@ def extract_fetures(base_path,
                         with open(join(extracted_features_path,
                                        f'test_pretrained_ViT_features.npy'), 'rb') as f:
                             test_features = np.load(f)
-
+                continue # new
                 if output_train_features and output_test_features:
                     print_and_add_to_log("Calculate KNN score", logging)
                     distances = knn_score(train_features, test_features, n_neighbours=2)
@@ -334,7 +338,7 @@ def forward_one_epoch(loader,
 
 
 def train(model, best_model, args, dataloaders,
-          model_checkpoint_path,
+          model_checkpoint_path, # .../experiments/multimodal/cifar10/class_i/model/last_full_finetuned_model_state_dict.pkl
           output_path, device='cuda',
           seed=42, anomaly_classes=None):
     torch.manual_seed(0)
@@ -366,7 +370,7 @@ def train(model, best_model, args, dataloaders,
                                    optimizer=optimizer,
                                    criterion=criterion,
                                    net=model,
-                                   mode=Mode.training,
+                                   mode=Mode.training, # 1
                                    progress_bar_str=progress_bar_str,
                                    num_of_epochs=epoch)
 
@@ -386,7 +390,7 @@ def train(model, best_model, args, dataloaders,
             torch.save(model.state_dict(), init_model_checkpoint_path)
 
         del losses
-        gc.collect()
+        gc.collect() # garbage collector
 
         if (epoch - 1) % args['eval_every'] == 0:
             # validation
@@ -481,7 +485,7 @@ def train(model, best_model, args, dataloaders,
                     print(f'layer AUROC score: {rot_auc}')
                     print("--------------------------------------------------------")
             model = model.train()
-
+    print("00000")
     progress_bar_str = 'Test: repeat %d -- Mean Loss: %.3f | Last Loss: %.3f'
 
     model = model.eval()
@@ -492,7 +496,7 @@ def train(model, best_model, args, dataloaders,
                                     mode=Mode.test,
                                     progress_bar_str=progress_bar_str,
                                     num_of_epochs=0)
-
+    print("11111")
     best_model = best_model.to('cpu')
     model = model.to('cpu')
     test_epoch_loss = np.mean(test_losses)
@@ -541,7 +545,7 @@ def get_finetuned_features(model,
     return np.array(all_outputs_recon_scores)
 
 
-def get_transforms(dataset, use_imagenet): # "cifar10", True
+def get_transforms(dataset, use_imagenet):
     # 0.5 normalization
     if dataset == 'fmnist':
         val_transforms_list = [
@@ -590,21 +594,21 @@ def get_datasets_for_ViT(dataset, data_path, one_vs_rest, _class,
     number_of_classes = get_number_of_classes(dataset) # 10
     if one_vs_rest: # (n-1)-class abnormal # train,test
         anomaly_classes = [i for i in range(number_of_classes) if i != _class]
-    else: # 1-class abnormal # _,ood
+    else: # 1-clas abnormal # _,ood
         anomaly_classes = [_class]
 
     val_transforms = get_transforms(dataset=dataset,
                                     use_imagenet=use_imagenet) # torchvision.transforms.Compose([resize,toTensor,normalize])
 
     # get dataset
-    trainset_origin, testset = get_datasets(dataset, data_path, val_transforms) # torchvision.datasets # (PIL: img 32*32,int: label)
-
+    trainset_origin, testset = get_datasets(dataset, data_path, val_transforms) # torchvision.datasets
+    # if True:
     train_indices = [i for i, val in enumerate(trainset_origin.targets) # get normal idx only
                      if val not in anomaly_classes]
     logging.info(f"len of train dataset {len(train_indices)}")
     trainset = torch.utils.data.Subset(trainset_origin, train_indices) # get normal trainset only
 
-    if normal_test_sample_only:
+    if normal_test_sample_only: # True
         test_indices = [i for i, val in enumerate(testset.targets)
                         if val not in anomaly_classes]
         testset = torch.utils.data.Subset(testset, test_indices)
@@ -618,7 +622,7 @@ def print_and_add_to_log(msg, logging):
     logging.info(msg)
 
 
-def get_datasets(dataset, data_path, val_transforms):
+def get_datasets(dataset, data_path, val_transforms): # "cifar10", "./_data/cifar10/val", val_transforms
     if dataset == 'cifar100':
         testset = CIFAR100(root=data_path,
                            train=False, download=True,
@@ -726,8 +730,8 @@ def progress_bar(current, total, msg=None):
 
 def plot_graphs(train_accuracies, val_accuracies, train_losses,
                 val_losses, path_to_save=''):
-    plot_accuracy(train_accuracies, val_accuracies, path_to_save=path_to_save)
-    plot_loss(train_losses, val_losses, path_to_save=path_to_save)
+    plot_accuracy(train_accuracies, val_accuracies, path_to_save=path_to_save, to_show=False)
+    plot_loss(train_losses, val_losses, path_to_save=path_to_save, to_show=False)
     return max(val_accuracies)
 
 
@@ -750,7 +754,7 @@ def plot_accuracy(train_accuracies, val_accuracies, to_show=True,
     plt.xlabel("epochs")
     plt.ylabel("accuracy")
     if len(path_to_save) > 0:
-        plt.savefig(f'{path_to_save}/accuracy_graph.png')
+        plt.savefig(f'./{path_to_save}/accuracy_graph.png')
 
     if to_show:
         plt.show()

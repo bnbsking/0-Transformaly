@@ -103,27 +103,27 @@ if __name__ == '__main__':
             "====================================================================",
             logging)
 
-        trainset, testset = get_datasets_for_ViT(dataset=args['dataset'],
-                                                 data_path=args['data_path'],
-                                                 one_vs_rest=args['unimodal'],
-                                                 _class=args['_class'],
-                                                 normal_test_sample_only=True,
-                                                 use_imagenet=args['use_imagenet']
-                                                 ) # "cifar10", "./_data/cifar10/val", False, 0, True, True # get normal only
+        trainset, testset = get_datasets_for_ViT(dataset=args['dataset'],          # "cifar10"
+                                                 data_path=args['data_path'],      # "./_data/cifar10/train"
+                                                 one_vs_rest=args['unimodal'],     # False
+                                                 _class=args['_class'],            # 0
+                                                 normal_test_sample_only=True,     # True
+                                                 use_imagenet=args['use_imagenet'] # True
+                                                 ) # get normal only # trainset==testset if cats_vs_dogs
 
         _, ood_test_set = get_datasets_for_ViT(dataset=args['dataset'],
                                                data_path=args['data_path'],
-                                               one_vs_rest=not args['unimodal'],
+                                               one_vs_rest=not args['unimodal'], # only diff
                                                _class=args['_class'],
                                                normal_test_sample_only=True,
                                                use_imagenet=args['use_imagenet']
                                                ) # get abnormal only
 
         print_and_add_to_log("---------------", logging)
-        print_and_add_to_log(f'Class size: {args["_class"]}', logging)
-        print_and_add_to_log(f'Trainset size: {len(trainset)}', logging)
-        print_and_add_to_log(f'Testset size: {len(testset)}', logging)
-        print_and_add_to_log(f'OOD testset size: {len(ood_test_set)}', logging)
+        print_and_add_to_log(f'Class size: {args["_class"]}', logging) # abnormal class # 0
+        print_and_add_to_log(f'Trainset size: {len(trainset)}', logging) # 200
+        print_and_add_to_log(f'Testset size: {len(testset)}', logging) # 200
+        print_and_add_to_log(f'OOD testset size: {len(ood_test_set)}', logging) # 20
         print_and_add_to_log("---------------", logging)
 
         train_loader = torch.utils.data.DataLoader(trainset, batch_size=args['batch_size'],
@@ -150,12 +150,17 @@ if __name__ == '__main__':
         # Build model for best instance
         best_model = AnomalyViT(VIT_MODEL_NAME, pretrained=True)
         best_model.fc = Identity()
+        if 0:
+            print( "*"*10 )
+            for name,weight in model.named_parameters():
+                print( (name, weight.shape, weight.numel()) )
+            print( "*"*10 )
 
         model.to('cuda')
         best_model.to('cuda')
 
         model_checkpoint_path = join(model_path, 'last_full_finetuned_model_state_dict.pkl')
-        if os.path.exists(model_checkpoint_path):
+        if os.path.exists(model_checkpoint_path): # False
             model_state_dict = torch.load(model_checkpoint_path)
             model.load_state_dict(model_state_dict)
             print_and_add_to_log("model loadded from checkpoint here:", logging)
@@ -173,16 +178,21 @@ if __name__ == '__main__':
                                                 model_checkpoint_path=model_checkpoint_path, # .../experiments/multimodal/cifar10/class_i/model/last_full_finetuned_model_state_dict.pkl
                                                 anomaly_classes=anomaly_classes # [0]
                                                 )
-
+        print("AAA---trainFinished---AAA")
         training_losses = cur_acc_loss['training_losses']
         val_losses = cur_acc_loss['val_losses']
+        print( type(training_losses), len(training_losses) ) # list # ep # () # ()
+        print( type(val_losses), len(val_losses) ) # list # ep # () # ()
         try:
-            plot_graphs(training_losses, val_losses, training_losses, val_losses)
+            if True:
+                plot_graphs(training_losses, val_losses, training_losses, val_losses, path_to_save=model_path)
+            else:
+                plot_graphs(training_losses, val_losses, training_losses, val_losses)
 
         except Exception as e:
             print_and_add_to_log('raise error:', logging)
             print_and_add_to_log(e, logging)
-
+        print("BBB---finishPlot---BBB")
         # save models
         torch.save(best_model.state_dict(), join(model_path,
                                                  'best_full_finetuned_model_state_dict.pkl'))
@@ -194,6 +204,8 @@ if __name__ == '__main__':
             pickle.dump(training_losses, f)
         with open(join(model_path, 'full_finetuned_val_losses.pkl'), 'wb') as f:
             pickle.dump(val_losses, f)
+        if True:
+            continue
 
         if args['use_imagenet']:
             MODEL_NAME = 'B_16_imagenet1k'
@@ -203,7 +215,7 @@ if __name__ == '__main__':
         model = ViT(MODEL_NAME, pretrained=True)
         model.fc = Identity()
         model.eval()
-
+        print(f"CCC---newModel {_class}---CCC")
         extract_fetures(base_path=BASE_PATH,
                         data_path=args['data_path'],
                         datasets=[args['dataset']],

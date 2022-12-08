@@ -68,7 +68,8 @@ if __name__ == '__main__':
                'all_layers_finetuned_AUROC_scores': [],
                'pretrained_and_finetuned_AUROC_scores': []}
 
-    for _class in _classes:
+    for _class in _classes[:1]:
+    #for _class in _classes:
         print_and_add_to_log("===================================", logging)
         print_and_add_to_log(f"Class is : {_class}", logging)
         print_and_add_to_log("===================================", logging)
@@ -96,9 +97,9 @@ if __name__ == '__main__':
                                                  data_path=args['data_path'],
                                                  one_vs_rest=args['unimodal'],
                                                  _class=args['_class'],
-                                                 normal_test_sample_only=False,
+                                                 normal_test_sample_only=False, # train is normal # test contains both
                                                  use_imagenet=args['use_imagenet'],
-                                                 )
+                                                 ) # len=200, len=220
 
         test_loader = torch.utils.data.DataLoader(testset,
                                                   batch_size=args['batch_size'],
@@ -107,32 +108,33 @@ if __name__ == '__main__':
                                                    batch_size=args['batch_size'],
                                                    shuffle=False)
 
-        anomaly_targets = [0 if i in anomaly_classes else 1 for i in testset.targets]
+        anomaly_targets = [0 if i in anomaly_classes else 1 for i in testset.targets] # [0]*20 + [1]*200
 
         print_and_add_to_log("=====================================================",
                              logging)
 
+        """
         # get ViT features
         with open(join(BASE_PATH, f'{"unimodal" if args["unimodal"] else "multimodal"}',
                        f'{args["dataset"]}/class_{args["_class"]}/extracted_features',
                        'train_pretrained_ViT_features.npy'), 'rb') as f:
-            train_features = np.load(f)
+            train_features = np.load(f) # 200,768
 
         with open(join(BASE_PATH, f'{"unimodal" if args["unimodal"] else "multimodal"}',
                        f'{args["dataset"]}/class_{args["_class"]}/extracted_features',
                        'test_pretrained_ViT_features.npy'), 'rb') as f:
-            test_features = np.load(f)
+            test_features = np.load(f) # 220,768
 
         # estimate the number of components
-        cov_train_features = np.cov(train_features.T)
-        values, vectors = eig(cov_train_features)
+        cov_train_features = np.cov(train_features.T)  # covariance matrix # (200,768) -> (768,768)
+        values, vectors = eig(cov_train_features)      # eigen value (768,) # eigen vectors (768,768)
         sorted_vals = sorted(values, reverse=True)
-        cumsum_vals = np.cumsum(sorted_vals)
-        explained_vars = cumsum_vals / cumsum_vals[-1]
-
+        cumsum_vals = np.cumsum(sorted_vals)           # (768,) increasing sorted and cumsum of eigen values
+        explained_vars = cumsum_vals / cumsum_vals[-1] # (768,), 0-1 float
+        
         for i, explained_var in enumerate(explained_vars):
             n_components = i
-            if explained_var > args['whitening_threshold']:
+            if explained_var > args['whitening_threshold']: # n_components: find index of increasing sorted cum_sum > 0.9 # 96
                 break
 
         print_and_add_to_log("=======================", logging)
@@ -140,8 +142,8 @@ if __name__ == '__main__':
         print_and_add_to_log("=======================", logging)
 
         pca = PCA(n_components=n_components, svd_solver='full', whiten=True)
-        train_features = np.ascontiguousarray(pca.fit_transform(train_features))
-        test_features = np.ascontiguousarray(pca.transform(test_features))
+        train_features = np.ascontiguousarray(pca.fit_transform(train_features)) # (200,96)
+        test_features = np.ascontiguousarray(pca.transform(test_features))       # (220,96)
         print_and_add_to_log("Whitening ended", logging)
 
         # build GMM
@@ -150,14 +152,15 @@ if __name__ == '__main__':
                                              verbose=1,
                                              n_init=1)
         dens_model.fit(train_features)
-        test_pretrained_samples_likelihood = dens_model.score_samples(test_features)
+        test_pretrained_samples_likelihood = dens_model.score_samples(test_features) # (220,96) -> (220)
         print_and_add_to_log("----------------------", logging)
 
         pretrained_auc = roc_auc_score(anomaly_targets, test_pretrained_samples_likelihood)
 
-        print_and_add_to_log(f"Pretrained AUROC score is: {pretrained_auc}", logging)
+        print_and_add_to_log(f"Pretrained AUROC score is: {pretrained_auc}", logging) # get final score
         print_and_add_to_log("----------------------", logging)
         results['pretrained_AUROC_scores'].append(pretrained_auc)
+        """
 
         # get finetuned prediction head scores
         FINETUNED_PREDICTION_FILE_NAME = 'full_test_finetuned_scores.npy'
@@ -190,7 +193,7 @@ if __name__ == '__main__':
             model.eval()
 
             test_finetuned_features = get_finetuned_features(model=model,
-                                                             loader=test_loader)
+                                                             loader=test_loader) # 220,12
 
             if not os.path.exists(join(base_feature_path, 'features_distances')):
                 os.makedirs(join(base_feature_path, 'features_distances'))
@@ -237,8 +240,8 @@ if __name__ == '__main__':
             train_finetuned_features = train_finetuned_features[0]
             print_and_add_to_log("squeeze training features", logging)
 
-        train_finetuned_features = train_finetuned_features[:, args['use_layer_outputs']]
-        test_finetuned_features = test_finetuned_features[:, args['use_layer_outputs']]
+        train_finetuned_features = train_finetuned_features[:, args['use_layer_outputs']] # 200,10
+        test_finetuned_features = test_finetuned_features[:, args['use_layer_outputs']] # 220,10
         gmm_scores = []
         train_gmm_scores = []
         gmm = mixture.GaussianMixture(n_components=1,
@@ -246,7 +249,9 @@ if __name__ == '__main__':
                                       verbose=1,
                                       n_init=1)
         gmm.fit(train_finetuned_features)
-        test_finetuned_samples_likelihood = gmm.score_samples(test_finetuned_features)
+        test_finetuned_samples_likelihood = gmm.score_samples(test_finetuned_features) # 220,10 -> 220
+        if True:
+            np.save(f"{model_path}/o_test_finetuned_samples_likelihood.npy", test_finetuned_samples_likelihood)
         # train_finetuned_samples_likelihood = gmm.score_samples(train_finetuned_features)
         # max_train_finetuned_features = np.max(np.abs(train_finetuned_samples_likelihood), axis=0)
 
@@ -256,6 +261,10 @@ if __name__ == '__main__':
         results['all_layers_finetuned_AUROC_scores'].append(test_finetuned_auc)
 
         print_and_add_to_log("----------------------", logging)
+        if True:
+            results['pretrained_AUROC_scores'] = [None]*len(results['class'])
+            results['pretrained_and_finetuned_AUROC_scores'] = [None]*len(results['class'])
+            continue
 
         finetuned_and_pretrained_samples_likelihood = [
             test_finetuned_samples_likelihood[i] + test_pretrained_samples_likelihood[i] for i in
