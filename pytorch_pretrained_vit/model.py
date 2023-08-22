@@ -236,7 +236,8 @@ class AnomalyViT(nn.Module):
         else:  # load pretrained model
             assert name in PRETRAINED_MODELS.keys(), \
                 'name should be in: ' + ', '.join(PRETRAINED_MODELS.keys())
-            config = PRETRAINED_MODELS[name]['config'] """ {'dim': 768, 'ff_dim': 3072, 'num_heads': 12, 'num_layers': 12, 'attention_dropout_rate': 0.0, \
+            config = PRETRAINED_MODELS[name]['config']
+            """ {'dim': 768, 'ff_dim': 3072, 'num_heads': 12, 'num_layers': 12, 'attention_dropout_rate': 0.0,
             'dropout_rate': 0.1, 'representation_size': None, 'classifier': 'token', 'patches': (16, 16)} """
             patches = config['patches']
             dim = config['dim']
