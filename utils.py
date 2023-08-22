@@ -314,9 +314,9 @@ def forward_one_epoch(loader,
         if mode == Mode.training:
             optimizer.zero_grad()
 
-        inputs = inputs.to(device)
+        inputs = inputs.to(device) # (B,3,384,384)
 
-        origin_block_outputs, cloned_block_outputs = net(inputs)
+        origin_block_outputs, cloned_block_outputs = net(inputs) # （B=12,B=4,577,768), （B=12,B=4,577,768)
         loss = criterion(cloned_block_outputs, origin_block_outputs)
         losses.append(loss.item())
 
