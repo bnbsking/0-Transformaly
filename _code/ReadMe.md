@@ -1,7 +1,7 @@
 ### Modes:
 + Annotation
 	+ D1: _data/example/train/
-	+ D2: _data/example/train/
+	+ D2: _data/example/test/
 	+ S1: train.py: train model M, get distribution-1 features
 	+ S2: eval.py: use M to get distribution-2 features, compute score for D1,D2,D1*D2
 	+ S1 and S2: trainset (=valset) normal, testset all
