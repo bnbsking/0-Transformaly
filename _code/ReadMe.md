@@ -24,26 +24,26 @@
 + experiments/ # auto-generated results by S1 & S2
 	+ multimodal/cats_vs_dogs/
 	+ class_0/
-	+ extracted_features_d1/ # D1S1
-				+ train_pretrained_ViT_features.npy      # normal features pretrained
-				+ test_pretrained_Vit_features.npy       # all features pretrained
-				+ test_pretrained_samples_likelihood.npy # distribution-1 scores
-			+ feature_distance_d1/  # D1S2
-				+ train_finetuned_features.npy           # normal pretrained CE(student,teacher)
-				+ full_test_finetuned_score.npy          # all pretrained CE(student,teacher)
-				+ test_pretrained_samples_likelihood.npy # distribution-2 scores
-			+ extracted_features_d2/*npy # D2S1, same as above
-			+ feature_distance_d2/*.npy  # D2S2, same as above
-			+ model/ # D1S1
-				+ best_full_finetuned_model_state_dict.pkl # best model and loaded by S2 for feature_distance
-				+ last_full_finetuned_model_state_dict.pkl
-				+ *_recon_model_state_dict.pkl
-				+ *_graph.png  # loss plot
-				+ *_losses.pkl # loss record
-			+ *_outputs.log # log for S1,S2
-		+ summarize_results/cats_vs_dogs/ # eval
+		+ extracted_features_d1/ # D1S1
+			+ train_pretrained_ViT_features.npy      # normal features pretrained
+			+ test_pretrained_Vit_features.npy       # all features pretrained
+			+ test_pretrained_samples_likelihood.npy # distribution-1 scores
+		+ feature_distance_d1/  # D1S2
+			+ train_finetuned_features.npy           # normal pretrained CE(student,teacher)
+			+ full_test_finetuned_score.npy          # all pretrained CE(student,teacher)
+			+ test_pretrained_samples_likelihood.npy # distribution-2 scores
+		+ extracted_features_d2/*npy # D2S1, same as above
+		+ feature_distance_d2/*.npy  # D2S2, same as above
+		+ model/ # D1S1
+			+ best_full_finetuned_model_state_dict.pkl # best model and loaded by S2 for feature_distance
+			+ last_full_finetuned_model_state_dict.pkl
+			+ *_recon_model_state_dict.pkl
+			+ *_graph.png  # loss plot
+			+ *_losses.pkl # loss record
+		+ *_outputs.log # log for S1,S2
+	+ summarize_results/cats_vs_dogs/ # eval
 		+ d1_cats_vs_dogs_results.csv # D1S2
-			+ d2_cats_vs_dogs_results.csv # D2S2
+		+ d2_cats_vs_dogs_results.csv # D2S2
 + train.py # S1
 + eval.py  # S2
 
