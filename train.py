@@ -28,6 +28,8 @@ if __name__ == '__main__':
                         help='Use the unimodal settings')
     parser.add_argument('--plot_every_layer_summarization', default=False, action='store_true',
                         help='plot the per layer AUROC')
+    parser.add_argument('--dataset_index', type=str, default="d1",
+                        help='dataset index')
     parser_args = parser.parse_args()
     args = vars(parser_args)
 
@@ -144,11 +146,29 @@ if __name__ == '__main__':
         else:
             VIT_MODEL_NAME = 'B_16'
 
+        if 1 and args['dataset_index']!="d1":
+            model = ViT(VIT_MODEL_NAME, pretrained=True)
+            model.fc = Identity()
+            model.eval()
+            model = model.to('cuda')
+            extract_fetures(base_path=BASE_PATH,
+                        data_path=args['data_path'],
+                        datasets=[args['dataset']],
+                        model=model,
+                        logging=logging,
+                        calculate_features=True,
+                        unimodal_vals=[args['unimodal']],
+                        manual_class_num_range=[_class],
+                        output_train_features=True,
+                        output_test_features=True,
+                        use_imagenet=args['use_imagenet'], di=args['dataset_index'])
+            break
+
         # Build model
         model = AnomalyViT(VIT_MODEL_NAME, pretrained=True)
         model.fc = Identity()
         # Build model for best instance
-        best_model = AnomalyViT(VIT_MODEL_NAME, pretrained=True)
+        best_model = AnomalyViT(VIT_MODEL_NAME, pretrained=True) if 0 else torch.nn.Module()
         best_model.fc = Identity()
         if 0:
             print( "*"*10 )
@@ -194,7 +214,8 @@ if __name__ == '__main__':
             print_and_add_to_log(e, logging)
         print("BBB---finishPlot---BBB")
         # save models
-        torch.save(best_model.state_dict(), join(model_path,
+        if 0:
+            torch.save(best_model.state_dict(), join(model_path,
                                                  'best_full_finetuned_model_state_dict.pkl'))
         torch.save(model.state_dict(), join(model_path,
                                             'last_full_finetuned_model_state_dict.pkl'))
@@ -204,7 +225,7 @@ if __name__ == '__main__':
             pickle.dump(training_losses, f)
         with open(join(model_path, 'full_finetuned_val_losses.pkl'), 'wb') as f:
             pickle.dump(val_losses, f)
-        if True:
+        if 0:
             continue
 
         if args['use_imagenet']:
@@ -216,6 +237,12 @@ if __name__ == '__main__':
         model.fc = Identity()
         model.eval()
         print(f"CCC---newModel {_class}---CCC")
+        if 0:
+            print( "*"*10 )
+            for name,weight in model.named_parameters():
+                print( (name, weight.shape, weight.numel()) )
+            print( "*"*10 )
+
         extract_fetures(base_path=BASE_PATH,
                         data_path=args['data_path'],
                         datasets=[args['dataset']],
@@ -227,3 +254,4 @@ if __name__ == '__main__':
                         output_train_features=True,
                         output_test_features=True,
                         use_imagenet=args['use_imagenet'])
+    print(f"DDD---END of training ---DDD")
