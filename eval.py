@@ -25,6 +25,8 @@ if __name__ == '__main__':
     parser.add_argument('--unimodal', default=False, action='store_true',
                         help='Use the unimodal settings')
     parser.add_argument('--batch_size', type=int, default=6, help='Training batch size')
+    parser.add_argument('--dataset_index', type=str, default="d1",
+                        help='dataset index')
     parser_args = parser.parse_args()
     args = vars(parser_args)
 
@@ -113,15 +115,15 @@ if __name__ == '__main__':
         print_and_add_to_log("=====================================================",
                              logging)
 
-        """
+        #"""
         # get ViT features
         with open(join(BASE_PATH, f'{"unimodal" if args["unimodal"] else "multimodal"}',
-                       f'{args["dataset"]}/class_{args["_class"]}/extracted_features',
+                       f'{args["dataset"]}/class_{args["_class"]}/extracted_features_{args["dataset_index"]}',
                        'train_pretrained_ViT_features.npy'), 'rb') as f:
             train_features = np.load(f) # 200,768
 
         with open(join(BASE_PATH, f'{"unimodal" if args["unimodal"] else "multimodal"}',
-                       f'{args["dataset"]}/class_{args["_class"]}/extracted_features',
+                       f'{args["dataset"]}/class_{args["_class"]}/extracted_features_{args["dataset_index"]}',
                        'test_pretrained_ViT_features.npy'), 'rb') as f:
             test_features = np.load(f) # 220,768
 
@@ -153,6 +155,8 @@ if __name__ == '__main__':
                                              n_init=1)
         dens_model.fit(train_features)
         test_pretrained_samples_likelihood = dens_model.score_samples(test_features) # (220,96) -> (220)
+        if 1:
+            np.save(f"{model_path}/../extracted_features_{args['dataset_index']}/test_pretrained_samples_likelihood.npy", test_pretrained_samples_likelihood)
         print_and_add_to_log("----------------------", logging)
 
         pretrained_auc = roc_auc_score(anomaly_targets, test_pretrained_samples_likelihood)
@@ -160,7 +164,7 @@ if __name__ == '__main__':
         print_and_add_to_log(f"Pretrained AUROC score is: {pretrained_auc}", logging) # get final score
         print_and_add_to_log("----------------------", logging)
         results['pretrained_AUROC_scores'].append(pretrained_auc)
-        """
+        #"""
 
         # get finetuned prediction head scores
         FINETUNED_PREDICTION_FILE_NAME = 'full_test_finetuned_scores.npy'
@@ -172,7 +176,7 @@ if __name__ == '__main__':
 
         # load best instance
         # Build model
-        if not os.path.exists(join(base_feature_path, 'features_distances',
+        if not os.path.exists(join(base_feature_path, f'features_distances_{args["dataset_index"]}',
                                    FINETUNED_PREDICTION_FILE_NAME)):
 
             print_and_add_to_log("Load Model", logging)
@@ -195,14 +199,14 @@ if __name__ == '__main__':
             test_finetuned_features = get_finetuned_features(model=model,
                                                              loader=test_loader) # 220,12
 
-            if not os.path.exists(join(base_feature_path, 'features_distances')):
-                os.makedirs(join(base_feature_path, 'features_distances'))
-            np.save(join(base_feature_path, 'features_distances', FINETUNED_PREDICTION_FILE_NAME),
+            if not os.path.exists(join(base_feature_path, f'features_distances_{args["dataset_index"]}')):
+                os.makedirs(join(base_feature_path, f'features_distances_{args["dataset_index"]}'))
+            np.save(join(base_feature_path, f'features_distances_{args["dataset_index"]}', FINETUNED_PREDICTION_FILE_NAME),
                     test_finetuned_features)
 
         else:
             test_finetuned_features = np.load(
-                join(base_feature_path, 'features_distances', FINETUNED_PREDICTION_FILE_NAME))
+                join(base_feature_path, f'features_distances_{args["dataset_index"]}', FINETUNED_PREDICTION_FILE_NAME))
 
         if test_finetuned_features.shape[0] == 1:
             test_finetuned_features = test_finetuned_features[0]
@@ -211,7 +215,7 @@ if __name__ == '__main__':
             args["use_layer_outputs"] = list(range(test_finetuned_features.shape[1]))
 
         if not os.path.exists(join(base_feature_path,
-                                   'features_distances', 'train_finetuned_features.npy')):
+                                   f'features_distances_{args["dataset_index"]}', 'train_finetuned_features.npy')):
             print_and_add_to_log("Load Model", logging)
             model_checkpoint_path = join(model_path, 'best_full_finetuned_model_state_dict.pkl')
             model = AnomalyViT(VIT_MODEL_NAME, pretrained=True)
@@ -230,10 +234,10 @@ if __name__ == '__main__':
 
             train_finetuned_features = get_finetuned_features(model=model,
                                                               loader=train_loader)
-            np.save(join(base_feature_path, 'features_distances', 'train_finetuned_features.npy'),
+            np.save(join(base_feature_path, f'features_distances_{args["dataset_index"]}', 'train_finetuned_features.npy'),
                     train_finetuned_features)
         else:
-            train_finetuned_features = np.load(join(base_feature_path, 'features_distances',
+            train_finetuned_features = np.load(join(base_feature_path, f'features_distances_{args["dataset_index"]}',
                                                     'train_finetuned_features.npy'))
 
         if train_finetuned_features.shape[0] == 1:
@@ -251,7 +255,7 @@ if __name__ == '__main__':
         gmm.fit(train_finetuned_features)
         test_finetuned_samples_likelihood = gmm.score_samples(test_finetuned_features) # 220,10 -> 220
         if True:
-            np.save(f"{model_path}/o_test_finetuned_samples_likelihood.npy", test_finetuned_samples_likelihood)
+            np.save(f"{model_path}/../features_distances_{args['dataset_index']}/test_finetuned_samples_likelihood.npy", test_finetuned_samples_likelihood)
         # train_finetuned_samples_likelihood = gmm.score_samples(train_finetuned_features)
         # max_train_finetuned_features = np.max(np.abs(train_finetuned_samples_likelihood), axis=0)
 
@@ -261,10 +265,10 @@ if __name__ == '__main__':
         results['all_layers_finetuned_AUROC_scores'].append(test_finetuned_auc)
 
         print_and_add_to_log("----------------------", logging)
-        if True:
-            results['pretrained_AUROC_scores'] = [None]*len(results['class'])
-            results['pretrained_and_finetuned_AUROC_scores'] = [None]*len(results['class'])
-            continue
+        #if True:
+        #    results['pretrained_AUROC_scores'] = [None]*len(results['class'])
+        #    results['pretrained_and_finetuned_AUROC_scores'] = [None]*len(results['class'])
+        #    continue
 
         finetuned_and_pretrained_samples_likelihood = [
             test_finetuned_samples_likelihood[i] + test_pretrained_samples_likelihood[i] for i in
@@ -280,7 +284,7 @@ if __name__ == '__main__':
 
     results_pd = pd.DataFrame.from_dict(results)
     results_dict_path = join(BASE_PATH,
-                             f'summarize_results/{args["dataset"]}/{args["dataset"]}_results.csv')
+                             f'summarize_results/{args["dataset"]}/{args["dataset_index"]}_{args["dataset"]}_results.csv')
     if not os.path.exists(join(BASE_PATH, f'summarize_results/{args["dataset"]}')):
         os.makedirs(join(BASE_PATH, f'summarize_results/{args["dataset"]}'))
     results_pd.to_csv(results_dict_path)
