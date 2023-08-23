@@ -106,7 +106,7 @@ def extract_fetures(base_path,
                     unimodal_vals=None,          # [False]
                     output_train_features=True,
                     output_test_features=True,
-                    use_imagenet=False):         # True
+                    use_imagenet=False, di="d1"): # True
     if unimodal_vals is None:
         unimodal_vals = [True, False]
 
@@ -216,7 +216,7 @@ def extract_fetures(base_path,
 
                 anomaly_targets = [1 if i in anomaly_classes else 0 for i in testset.targets]
 
-                extracted_features_path = join(base_feature_path, 'extracted_features')
+                extracted_features_path = join(base_feature_path, f'extracted_features_{di}')
                 if not os.path.exists(extracted_features_path):
                     os.makedirs(extracted_features_path)
 
@@ -249,7 +249,7 @@ def extract_fetures(base_path,
                         with open(join(extracted_features_path,
                                        f'test_pretrained_ViT_features.npy'), 'rb') as f:
                             test_features = np.load(f)
-                continue # new
+                return # new
                 if output_train_features and output_test_features:
                     print_and_add_to_log("Calculate KNN score", logging)
                     distances = knn_score(train_features, test_features, n_neighbours=2)
@@ -314,9 +314,9 @@ def forward_one_epoch(loader,
         if mode == Mode.training:
             optimizer.zero_grad()
 
-        inputs = inputs.to(device) # (B,3,384,384)
+        inputs = inputs.to(device)
 
-        origin_block_outputs, cloned_block_outputs = net(inputs) # （B=12,B=4,577,768), （B=12,B=4,577,768)
+        origin_block_outputs, cloned_block_outputs = net(inputs)
         loss = criterion(cloned_block_outputs, origin_block_outputs)
         losses.append(loss.item())
 
@@ -389,7 +389,7 @@ def train(model, best_model, args, dataloaders,
                                               f'{epoch}_full_recon_model_state_dict.pkl')
             torch.save(model.state_dict(), init_model_checkpoint_path)
 
-        del losses
+        #del losses # new: skip validation since it same as training
         gc.collect() # garbage collector
 
         if (epoch - 1) % args['eval_every'] == 0:
@@ -397,14 +397,15 @@ def train(model, best_model, args, dataloaders,
             model.eval()
             progress_bar_str = 'Validation: repeat %d -- Mean Loss: %.3f | Last Loss: %.3f'
 
-            losses = forward_one_epoch(loader=val_loader,
-                                       optimizer=optimizer,
-                                       criterion=criterion,
-                                       net=model,
-                                       mode=Mode.validation,
-                                       progress_bar_str=progress_bar_str,
-                                       num_of_epochs=epoch
-                                             )
+            if 0:
+                losses = forward_one_epoch(loader=val_loader,
+                                        optimizer=optimizer,
+                                        criterion=criterion,
+                                        net=model,
+                                        mode=Mode.validation,
+                                        progress_bar_str=progress_bar_str,
+                                        num_of_epochs=epoch
+                                                )
 
             val_epoch_loss = np.mean(losses)
             sys.stdout.flush()
@@ -426,7 +427,10 @@ def train(model, best_model, args, dataloaders,
 
                 print(f'========== new best model! epoch {best_acc_epoch}, loss {best_val_loss}  ==========')
 
-                best_model.load_state_dict(model.state_dict())
+                if 1:
+                    torch.save(model.state_dict(), join(output_path,'best_full_finetuned_model_state_dict.pkl'))
+                else:
+                    best_model.load_state_dict(model.state_dict())
                 # best_model = copy.deepcopy(model)
                 # no_imporvement_epochs = 0
             # else:
